@@ -1,0 +1,4 @@
+#!/bin/bash
+
+FOLDER=$(dirname $(readlink -f $0))
+ruby "$FOLDER/ecs_console.rb" "$@"
