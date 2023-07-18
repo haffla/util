@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'tty-prompt'
-require 'tty-option'
+require 'bundler/inline'
+
+gemfile do
+  source 'https://rubygems.org'
+  gem 'json'
+  gem 'tty-option'
+  gem 'tty-prompt'
+end
 
 class Command
   include TTY::Option
