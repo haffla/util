@@ -70,12 +70,15 @@ class Program
     print_env
 
     env_hash = all_env.transform_values { _1[:value] }
-    pid = Process.spawn(env_hash, cmd.params[:command])
-    Process.wait pid
-
-    puts 'DONE'
-  rescue Interrupt
-    puts 'Aborted'
+    begin
+      # Prevent Ctrl-c from exiting the parent process. Use CTRL-d.
+      original_sigint = Signal.trap("INT", "IGNORE")
+      pid = Process.spawn(env_hash, cmd.params[:command])
+      Process.wait pid
+      puts 'goodbye ;)'
+    ensure
+      Signal.trap("INT", original_sigint)
+    end
   end
 
   private
@@ -123,16 +126,18 @@ class Program
   end
 
   def fetch_secret_values(secrets)
-    secret_keys = secrets.map { |secret| secret['valueFrom'] }.join(' ')
+    # get-parameters can only fetch 10 secrets at a time
+    secrets.each_slice(10) do |keys|
+      secret_keys = keys.map { |k| k['valueFrom'] }.join(' ')
+      `aws ssm get-parameters --with-decryption --names #{secret_keys} --query 'Parameters'`.then do
+        JSON.parse(_1).each do |parameter|
+          name = parameter['Name']
+          value = parameter['Value']
+          key = secrets.find { |secret| secret['valueFrom'] == name }['name']
+          next if key.nil?
 
-    `aws ssm get-parameters --with-decryption --names #{secret_keys} --query 'Parameters'`.then do
-      JSON.parse(_1).each do |parameter|
-        name = parameter['Name']
-        value = parameter['Value']
-        key = secrets.find { |secret| secret['valueFrom'] == name }['name']
-        next if key.nil?
-
-        all_env[key] = { value:, secret: true }
+          all_env[key] = { value:, secret: true }
+        end
       end
     end
   end
