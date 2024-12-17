@@ -119,7 +119,7 @@ class Program
     task_definition['environment'].each do |env|
       key = env['name']
       value = env['value']
-      all_env[key] = { value:, secret: false }
+      all_env[key] = { value: value, secret: false }
     end
 
     [task_definition['environment'], task_definition['secrets']]
@@ -136,7 +136,7 @@ class Program
           key = secrets.find { |secret| secret['valueFrom'] == name }['name']
           next if key.nil?
 
-          all_env[key] = { value:, secret: true }
+          all_env[key] = { value: value, secret: true }
         end
       end
     end
